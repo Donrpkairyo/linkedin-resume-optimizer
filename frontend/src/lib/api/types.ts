@@ -13,7 +13,10 @@ export interface JobSearchRequest {
   location?: string;
   job_type?: string;
   limit: number;
+<<<<<<< HEAD
   offset?: number;
+=======
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 }
 
 export interface ResumeOptimizationRequest {

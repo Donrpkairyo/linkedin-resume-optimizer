@@ -7,6 +7,7 @@ import {
   ErrorResponse 
 } from './types';
 
+<<<<<<< HEAD
 // Determine if we're in production
 const isProduction = import.meta.env.PROD;
 
@@ -17,6 +18,9 @@ let BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 if (isProduction && BASE_URL.startsWith('http://')) {
   BASE_URL = BASE_URL.replace('http://', 'https://');
 }
+=======
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4002';
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 
 const api = axios.create({
   baseURL: BASE_URL,

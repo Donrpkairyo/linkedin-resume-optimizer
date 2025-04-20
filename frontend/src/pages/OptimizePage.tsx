@@ -8,6 +8,7 @@ import {
   Group,
   Text,
   Tabs,
+<<<<<<< HEAD
   Box,
   FileButton,
 } from '@mantine/core';
@@ -19,6 +20,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resumeApi } from '../lib/api/client';
 import { ResumeOptimizationRequest } from '../lib/api/types';
 import { LoadingSteps } from '../components/LoadingSteps';
+=======
+  Loader,
+  Box,
+  FileButton,
+} from '@mantine/core';
+import { IconFileUpload, IconWand, IconDownload } from '@tabler/icons-react';
+import { useForm } from '@mantine/form';
+import { notifications } from '@mantine/notifications';
+import { useMutation } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
+import { resumeApi } from '../lib/api/client';
+import { ResumeOptimizationRequest } from '../lib/api/types';
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 import '@mantine/core/styles.css';
 
 interface OptimizeFormValues {
@@ -27,6 +41,7 @@ interface OptimizeFormValues {
   job_url: string;
 }
 
+<<<<<<< HEAD
 interface TextareaChangeEvent {
   target: {
     value: string;
@@ -42,6 +57,13 @@ export default function OptimizePage() {
   const [editedSuggestions, setEditedSuggestions] = useState<string>('');
   const [optimizedResume, setOptimizedResume] = useState<string>('');
   const [showResults, setShowResults] = useState(false);
+=======
+export default function OptimizePage() {
+  const [searchParams] = useSearchParams();
+  const jobUrl = searchParams.get('url');
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [editedSuggestions, setEditedSuggestions] = useState<string>('');
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 
   const form = useForm<OptimizeFormValues>({
     initialValues: {
@@ -50,14 +72,23 @@ export default function OptimizePage() {
       job_url: jobUrl || '',
     },
     validate: {
+<<<<<<< HEAD
       resume_text: (value: string) => (!value && !currentFile ? 'Resume text or file is required' : null),
       job_description: (value: string, values: OptimizeFormValues) => {
+=======
+      resume_text: (value) => (!value && !currentFile ? 'Resume text or file is required' : null),
+      job_description: (value, values) => {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
         if (!value && !values.job_url) {
           return 'Either job description or URL is required';
         }
         return null;
       },
+<<<<<<< HEAD
       job_url: (value: string, values: OptimizeFormValues) => {
+=======
+      job_url: (value, values) => {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
         if (!value && !values.job_description) {
           return 'Either job description or URL is required';
         }
@@ -71,10 +102,14 @@ export default function OptimizePage() {
 
   const optimizeMutation = useMutation({
     mutationFn: (data: ResumeOptimizationRequest) => resumeApi.optimize(data),
+<<<<<<< HEAD
     onSuccess: (data) => {
       setOptimizedResume(data.optimized_resume);
     },
     onError: (error: unknown) => {
+=======
+    onError: (error) => {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
       notifications.show({
         title: 'Error',
         message: error instanceof Error ? error.message : 'Failed to optimize resume',
@@ -86,10 +121,14 @@ export default function OptimizePage() {
   const optimizeFromUrlMutation = useMutation({
     mutationFn: (data: { resume_text: string; job_url: string }) => 
       resumeApi.optimizeFromUrl(data),
+<<<<<<< HEAD
     onSuccess: (data) => {
       setOptimizedResume(data.optimized_resume);
     },
     onError: (error: unknown) => {
+=======
+    onError: (error) => {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
       notifications.show({
         title: 'Error',
         message: error instanceof Error ? error.message : 'Failed to optimize resume',
@@ -100,10 +139,14 @@ export default function OptimizePage() {
 
   const optimizeFromDocxMutation = useMutation({
     mutationFn: (formData: FormData) => resumeApi.optimizeFromDocx(formData),
+<<<<<<< HEAD
     onSuccess: (data) => {
       setOptimizedResume(data.optimized_resume);
     },
     onError: (error: unknown) => {
+=======
+    onError: (error) => {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
       notifications.show({
         title: 'Error',
         message: error instanceof Error ? error.message : 'Failed to optimize resume',
@@ -112,6 +155,7 @@ export default function OptimizePage() {
     },
   });
 
+<<<<<<< HEAD
   const handleLoadingComplete = () => {
     setShowResults(true);
   };
@@ -136,11 +180,19 @@ export default function OptimizePage() {
   const handleSubmit = form.onSubmit((values: OptimizeFormValues) => {
     setShowResults(false);
     setOptimizedResume(''); // Clear previous results
+=======
+  const handleSubmit = form.onSubmit((values) => {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
     if (currentFile && (currentFile.name.endsWith('.docx') || currentFile.name.endsWith('.doc'))) {
       const formData = new FormData();
       formData.append('resume', currentFile);
       formData.append('job_description', values.job_description || '');
       formData.append('job_url', values.job_url || '');
+<<<<<<< HEAD
+=======
+      console.log('Sending file:', currentFile.name);
+      console.log('FormData entries:', Array.from(formData.entries()));
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
       optimizeFromDocxMutation.mutate(formData);
     } else if (values.job_url) {
       optimizeFromUrlMutation.mutate({
@@ -155,6 +207,7 @@ export default function OptimizePage() {
     }
   });
 
+<<<<<<< HEAD
   const handleBackToSearch = () => {
     navigate('/');
   };
@@ -162,19 +215,51 @@ export default function OptimizePage() {
   const isLoading = optimizeMutation.isPending || optimizeFromUrlMutation.isPending || optimizeFromDocxMutation.isPending;
   const error = optimizeMutation.error || optimizeFromUrlMutation.error || optimizeFromDocxMutation.error;
 
+=======
+  const handleFileUpload = (file: File | null) => {
+    if (!file) return;
+    setCurrentFile(file);
+
+    if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+      // For Word documents, we'll handle them when submitting
+      form.setFieldValue('resume_text', `File selected: ${file.name}`);
+    } else {
+      // For text files, read the content
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          form.setFieldValue('resume_text', e.target.result.toString());
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const isLoading = optimizeMutation.isPending || optimizeFromUrlMutation.isPending || optimizeFromDocxMutation.isPending;
+  const optimizedResume =
+    optimizeMutation.data?.optimized_resume ||
+    optimizeFromUrlMutation.data?.optimized_resume ||
+    optimizeFromDocxMutation.data?.optimized_resume;
+
+  // Update editedSuggestions when new optimization results come in
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
   useEffect(() => {
     if (optimizedResume) {
       setEditedSuggestions(optimizedResume);
     }
   }, [optimizedResume]);
 
+<<<<<<< HEAD
   const defaultTab = jobUrl ? 'url' : 'description';
 
+=======
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
   return (
     <Stack gap="xl">
       <Paper p="md" withBorder>
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
+<<<<<<< HEAD
             <Group justify="space-between" align="center">
               <Title order={2}>Resume Optimizer</Title>
               <Button
@@ -185,6 +270,9 @@ export default function OptimizePage() {
                 Back to Search
               </Button>
             </Group>
+=======
+            <Title order={2}>Resume Optimizer</Title>
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 
             <Box>
               <Group mb="xs">
@@ -213,7 +301,11 @@ export default function OptimizePage() {
               />
             </Box>
 
+<<<<<<< HEAD
             <Tabs defaultValue={defaultTab}>
+=======
+            <Tabs defaultValue="description">
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
               <Tabs.List>
                 <Tabs.Tab value="description">Job Description</Tabs.Tab>
                 <Tabs.Tab value="url">LinkedIn URL</Tabs.Tab>
@@ -253,6 +345,7 @@ export default function OptimizePage() {
         </form>
       </Paper>
 
+<<<<<<< HEAD
       {isLoading && !optimizedResume ? (
         <LoadingSteps 
           onLoadingComplete={handleLoadingComplete}
@@ -305,6 +398,58 @@ export default function OptimizePage() {
             />
           </Stack>
         </Paper>
+=======
+      {isLoading ? (
+        <Box ta="center" py="xl">
+          <Loader size="lg" />
+        </Box>
+      ) : optimizedResume ? (
+        <Stack gap="md">
+          <Paper p="md" withBorder>
+            <Stack gap="md">
+              <Group justify="space-between" align="center">
+                <Title order={2}>Suggested Updates</Title>
+                <Button
+                  variant="light"
+                  leftSection={<IconDownload size={16} />}
+                  onClick={() => {
+                    if (currentFile) {
+                      const formData = new FormData();
+                      formData.append('resume', currentFile);
+                      formData.append('suggestions', editedSuggestions || optimizedResume);
+                      resumeApi.exportResume(formData)
+                        .then(() => {
+                          notifications.show({
+                            title: 'Success',
+                            message: 'Resume updated successfully! Check your downloads folder.',
+                            color: 'green',
+                          });
+                        })
+                        .catch((error: any) => {
+                          notifications.show({
+                            title: 'Error',
+                            message: error instanceof Error ? error.message : 'Failed to export resume',
+                            color: 'red',
+                          });
+                        });
+                    }
+                  }}
+                  disabled={!currentFile}
+                >
+                  Export Resume
+                </Button>
+              </Group>
+              <Textarea
+                value={editedSuggestions || optimizedResume}
+                onChange={(e) => setEditedSuggestions(e.target.value)}
+                minRows={15}
+                autosize
+                style={{ fontFamily: 'monospace' }}
+              />
+            </Stack>
+          </Paper>
+        </Stack>
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
       ) : null}
     </Stack>
   );

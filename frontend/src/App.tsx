@@ -16,9 +16,12 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: false,
       staleTime: 1000 * 60 * 5, // 5 minutes
+<<<<<<< HEAD
       gcTime: 1000 * 60 * 30, // 30 minutes
       refetchOnMount: false, // Don't refetch on component mount
       refetchOnReconnect: false, // Don't refetch on reconnect
+=======
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
     },
   },
 });

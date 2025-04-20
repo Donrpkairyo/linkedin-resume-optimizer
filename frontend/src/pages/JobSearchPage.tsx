@@ -12,17 +12,25 @@ import {
   Box
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+<<<<<<< HEAD
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { IconBriefcase, IconMapPin, IconSearch } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIntersection } from '@mantine/hooks';
 import { useEffect, useRef } from 'react';
+=======
+import { useMutation } from '@tanstack/react-query';
+import { IconBriefcase, IconMapPin, IconSearch } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { Link } from 'react-router-dom';
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 import { jobsApi } from '../lib/api/client';
 import { JobDescription, JobSearchRequest } from '../lib/api/types';
 import '@mantine/core/styles.css';
 
 export default function JobSearchPage() {
+<<<<<<< HEAD
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -36,6 +44,12 @@ export default function JobSearchPage() {
     initialValues: {
       keywords: searchParams.get('keywords') || '',
       location: searchParams.get('location') || '',
+=======
+  const form = useForm<JobSearchRequest>({
+    initialValues: {
+      keywords: '',
+      location: '',
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
       job_type: '',
       limit: 10,
     },
@@ -44,6 +58,7 @@ export default function JobSearchPage() {
     },
   });
 
+<<<<<<< HEAD
   const {
     data,
     fetchNextPage,
@@ -104,6 +119,23 @@ export default function JobSearchPage() {
   const allJobs = data?.pages.flatMap(page => page) || [];
   const totalJobs = allJobs.length;
 
+=======
+  const searchMutation = useMutation({
+    mutationFn: (data: JobSearchRequest) => jobsApi.search(data),
+    onError: (error) => {
+      notifications.show({
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to search jobs',
+        color: 'red',
+      });
+    },
+  });
+
+  const handleSubmit = form.onSubmit((values) => {
+    searchMutation.mutate(values);
+  });
+
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
   return (
     <Stack gap="xl">
       <Paper p="md" withBorder>
@@ -127,7 +159,11 @@ export default function JobSearchPage() {
             <Group justify="flex-end">
               <Button 
                 type="submit" 
+<<<<<<< HEAD
                 loading={isLoading}
+=======
+                loading={searchMutation.isPending}
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
                 leftSection={<IconBriefcase size={20} />}
               >
                 Search Jobs
@@ -137,6 +173,7 @@ export default function JobSearchPage() {
         </form>
       </Paper>
 
+<<<<<<< HEAD
       {isLoading ? (
         <Box ta="center" py="xl">
           <Loader size="lg" />
@@ -167,13 +204,29 @@ export default function JobSearchPage() {
               <Loader size="sm" />
             </Box>
           )}
+=======
+      {searchMutation.isPending ? (
+        <Box ta="center" py="xl">
+          <Loader size="lg" />
+        </Box>
+      ) : searchMutation.isSuccess && searchMutation.data ? (
+        <Stack gap="md">
+          <Title order={2}>Search Results</Title>
+          {searchMutation.data.map((job: JobDescription) => (
+            <JobCard key={job.job_id} job={job} />
+          ))}
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
         </Stack>
       ) : null}
     </Stack>
   );
 }
 
+<<<<<<< HEAD
 function JobCard({ job, onOptimize }: { job: JobDescription; onOptimize: () => void }) {
+=======
+function JobCard({ job }: { job: JobDescription }) {
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
   return (
     <Card withBorder>
       <Stack gap="md">
@@ -187,7 +240,12 @@ function JobCard({ job, onOptimize }: { job: JobDescription; onOptimize: () => v
             </Text>
           </Box>
           <Button
+<<<<<<< HEAD
             onClick={onOptimize}
+=======
+            component={Link}
+            to={`/optimize?url=${encodeURIComponent(job.url || '')}`}
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
             variant="light"
           >
             Optimize Resume

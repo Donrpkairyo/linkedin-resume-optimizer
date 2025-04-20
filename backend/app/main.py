@@ -20,6 +20,7 @@ app = FastAPI(
 
 # Configure CORS
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+<<<<<<< HEAD
 environment = os.getenv("ENVIRONMENT", "development")
 
 # Define allowed origins based on environment
@@ -42,6 +43,22 @@ origins = [origin for origin in origins if origin]
 
 # Log the allowed origins
 print(f"Allowed CORS origins: {origins}")
+=======
+origins = [
+    frontend_url,
+    "http://localhost:5173",  # React development server
+    "http://localhost:5174",  # Alternative frontend port
+    "http://localhost:5175",  # Alternative frontend port
+    "http://localhost:5176",  # Alternative frontend port
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:5176",
+]
+
+# Remove any None values from origins
+origins = [origin for origin in origins if origin is not None]
+>>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 
 app.add_middleware(
     CORSMiddleware,
