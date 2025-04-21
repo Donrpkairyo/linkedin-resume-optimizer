@@ -1,10 +1,6 @@
 import os
 from typing import Optional
-<<<<<<< HEAD
 import google.generativeai as genai
-=======
-from openai import AsyncOpenAI
->>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 import httpx
 from fastapi import HTTPException
 from dotenv import load_dotenv
@@ -14,27 +10,12 @@ load_dotenv()
 
 class ResumeService:
     def __init__(self):
-<<<<<<< HEAD
         api_key = os.getenv('GEMINI_API_KEY')
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
 
         genai.configure(api_key=api_key)
         self.client = genai.GenerativeModel('gemini-1.5-pro-latest')
-=======
-        api_key = os.getenv('DEEPSEEK_API_KEY')
-        if not api_key:
-            raise ValueError("DEEPSEEK_API_KEY environment variable is not set")
-
-        self.client = AsyncOpenAI(
-            api_key=api_key,
-            base_url="https://api.deepseek.com",
-            http_client=httpx.AsyncClient(
-                follow_redirects=True,
-                timeout=None,
-            )
-        )
->>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
 
     async def optimize_resume(
         self,
@@ -42,7 +23,6 @@ class ResumeService:
         job_description: str
     ) -> str:
         """
-<<<<<<< HEAD
         Optimize resume text based on job description using Gemini Pro.
         """
         try:
@@ -89,58 +69,6 @@ class ResumeService:
             response = self.client.generate_content(prompt)
             optimized_content = response.text.strip()
 
-=======
-        Optimize resume text based on job description using DeepSeek AI.
-        """
-        try:
-            # Call DeepSeek API
-            response = await self.client.chat.completions.create(
-                model="deepseek-reasoner",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant"},
-                    {"role": "user", "content": f"""
-                    Analyze this resume against the job description and create optimized bullet points. Follow these rules exactly:
-
-                    1. Output Format:
-                       POSITION_UPDATES:
-                       [Existing Position Title]
-                       [Company | Date exactly as in resume]
-                       - [New bullet point]
-
-                    2. Bullet Point Rules:
-                       - Match original length (±10 words)
-                       - Start with strong action verbs
-                       - Include metrics when present
-                       - Focus on achievements relevant to job requirements
-                       - Keep original tone and professionalism
-                       - Avoid generic statements
-                       - Limit to 3-4 bullets per position
-                       - Total length similar to original
-
-                    3. Position Rules:
-                       - Only update existing positions
-                       - Keep exact company names and dates
-                       - Focus on most recent/relevant positions
-                       - Maintain chronological order
-
-                    4. Language Rules:
-                       - Use concise, impactful language
-                       - Incorporate job-specific keywords naturally
-                       - Keep industry-standard terms
-                       - Preserve technical terminology
-
-                    Resume:
-                    {resume_text}
-
-                    Job Description:
-                    {job_description}
-                    """}
-                ]
-            )
-
-            optimized_content = response.choices[0].message.content.strip()
-            
->>>>>>> ee0f8b66d95e45595ff8fe3312d03d1d1c7c8959
             # Validate the response
             if not optimized_content or len(optimized_content) < 50:
                 raise ValueError("Invalid optimization result received")
