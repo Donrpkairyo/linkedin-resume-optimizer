@@ -43,12 +43,19 @@ async def get_job_by_url(
                 detail="Invalid LinkedIn URL"
             )
 
-        # Extract job ID from URL
-        job_id = parsed_url.path.split('/')[-1]
+        # Extract job ID from URL, handling both /view/ID and /view/ID/ formats
+        path_parts = [p for p in parsed_url.path.split('/') if p]
+        if len(path_parts) < 2 or path_parts[-2] != 'view':
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid LinkedIn job URL format. Expected format: /jobs/view/[ID]"
+            )
+            
+        job_id = path_parts[-1].split('?')[0]  # Remove any query parameters
         if not job_id.isdigit():
             raise HTTPException(
                 status_code=400,
-                detail="Invalid LinkedIn job URL format"
+                detail="Invalid job ID in URL"
             )
 
         # Use the service to fetch job details

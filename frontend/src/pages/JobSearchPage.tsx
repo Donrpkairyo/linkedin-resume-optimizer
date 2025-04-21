@@ -17,10 +17,15 @@ import { IconBriefcase, IconMapPin, IconSearch } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIntersection } from '@mantine/hooks';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { jobsApi } from '../lib/api/client';
 import { JobDescription, JobSearchRequest } from '../lib/api/types';
 import '@mantine/core/styles.css';
+
+// Update getJobDetails type in JobCard
+async function getJobDetails(url: string): Promise<JobDescription> {
+  return jobsApi.getByUrl(url);
+}
 
 export default function JobSearchPage() {
   const queryClient = useQueryClient();
@@ -175,6 +180,56 @@ export default function JobSearchPage() {
 }
 
 function JobCard({ job, onOptimize }: { job: JobDescription; onOptimize: () => void }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [description, setDescription] = useState(job.description);
+  const [loadAttempts, setLoadAttempts] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  useEffect(() => {
+    const loadDescription = async () => {
+      if (job.url && description === "Loading..." && !isRetrying) {
+        try {
+          const jobId = job.url.split('/').filter(Boolean).pop()?.split('?')[0];
+          const canonicalUrl = `https://www.linkedin.com/jobs/view/${jobId}/`;
+          
+          const response = await jobsApi.getByUrl(canonicalUrl);
+          if (response && response.description) {
+            setDescription(response.description);
+          } else if (loadAttempts < 2) {
+            // Retry with exponential backoff
+            setIsRetrying(true);
+            setTimeout(() => {
+              setLoadAttempts(prev => prev + 1);
+              setIsRetrying(false);
+              setDescription("Loading..."); // Trigger retry
+            }, 2000 * (loadAttempts + 1));
+          } else {
+            setDescription('Description temporarily unavailable');
+            notifications.show({
+              title: 'Rate Limit',
+              message: 'Some job details are temporarily unavailable. Please try again in a few minutes.',
+              color: 'yellow',
+            });
+          }
+        } catch (error) {
+          console.error('Error loading job description:', error);
+          if (loadAttempts < 2) {
+            // Retry on error
+            setIsRetrying(true);
+            setTimeout(() => {
+              setLoadAttempts(prev => prev + 1);
+              setIsRetrying(false);
+              setDescription("Loading..."); // Trigger retry
+            }, 2000 * (loadAttempts + 1));
+          } else {
+            setDescription('Error loading description');
+          }
+        }
+      }
+    };
+    loadDescription();
+  }, [job.url, description, loadAttempts, isRetrying]);
+
   return (
     <Card withBorder>
       <Stack gap="md">
@@ -199,9 +254,25 @@ function JobCard({ job, onOptimize }: { job: JobDescription; onOptimize: () => v
             {job.location}
           </Badge>
         </Group>
-        <Text lineClamp={3}>
-          {job.description}
-        </Text>
+        <Box>
+          {description ? (
+            <>
+              <Text lineClamp={isExpanded ? undefined : 3}>
+                {description}
+              </Text>
+              <Button
+                variant="subtle"
+                onClick={() => setIsExpanded(!isExpanded)}
+                size="xs"
+                mt="xs"
+              >
+                {isExpanded ? 'Show Less' : 'Read More'}
+              </Button>
+            </>
+          ) : (
+            <Loader size="sm" />
+          )}
+        </Box>
         {job.url && (
           <Button
             component="a"

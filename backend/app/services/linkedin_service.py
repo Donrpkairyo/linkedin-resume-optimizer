@@ -54,28 +54,35 @@ class LinkedInService:
         """Set data in cache with current timestamp."""
         self._cache[key] = CacheEntry(data, datetime.now())
 
-    async def _get_with_retry(self, url: str, retries: int = 2) -> Optional[BeautifulSoup]:
-        """Get URL content with minimal retries."""
-        async with httpx.AsyncClient(headers=self.headers, timeout=15.0) as client:
-            try:
-                response = await client.get(url)
-                
-                if response.status_code == 200:
-                    return BeautifulSoup(response.content, 'html.parser')
-                elif response.status_code == 404:
-                    return None
-                else:
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail="Failed to fetch job data"
-                    )
+    async def _get_with_retry(self, url: str, retries: int = 3) -> Optional[BeautifulSoup]:
+        """Get URL content with smart retries."""
+        async with httpx.AsyncClient(headers=self.headers, timeout=20.0) as client:
+            for attempt in range(retries):
+                try:
+                    # Add delay between retries, increasing with each attempt
+                    if attempt > 0:
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff: 2, 4, 8 seconds
+                        
+                    response = await client.get(url)
                     
-            except Exception as e:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Service temporarily unavailable"
-                )
-        return None
+                    if response.status_code == 200:
+                        return BeautifulSoup(response.content, 'html.parser')
+                    elif response.status_code == 404:
+                        return None
+                    elif response.status_code == 429:  # Rate limit hit
+                        if attempt < retries - 1:
+                            continue  # Try again with backoff
+                        else:
+                            return None  # Skip this job rather than fail
+                    else:
+                        if attempt == retries - 1:
+                            return None  # Skip problematic jobs on final attempt
+                        
+                except Exception as e:
+                    if attempt == retries - 1:
+                        return None  # Skip on final attempt instead of failing
+                    
+        return None  # Fallback response
 
     async def _get_description_batch(self, urls: List[str]) -> Dict[str, str]:
         """Get multiple job descriptions in parallel."""
