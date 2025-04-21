@@ -54,33 +54,53 @@ class LinkedInService:
         """Set data in cache with current timestamp."""
         self._cache[key] = CacheEntry(data, datetime.now())
 
-    async def _get_with_retry(self, url: str, retries: int = 3, delay: float = 0.5) -> Optional[BeautifulSoup]:
-        """Get URL content with retries and rate limiting."""
-        async with httpx.AsyncClient(headers=self.headers, timeout=30.0) as client:
-            for attempt in range(retries):
-                try:
-                    await self.rate_limiter.acquire()
-                    response = await client.get(url)
+    async def _get_with_retry(self, url: str, retries: int = 2) -> Optional[BeautifulSoup]:
+        """Get URL content with minimal retries."""
+        async with httpx.AsyncClient(headers=self.headers, timeout=15.0) as client:
+            try:
+                response = await client.get(url)
+                
+                if response.status_code == 200:
+                    return BeautifulSoup(response.content, 'html.parser')
+                elif response.status_code == 404:
+                    return None
+                else:
+                    raise HTTPException(
+                        status_code=response.status_code,
+                        detail="Failed to fetch job data"
+                    )
                     
-                    if response.status_code == 200:
-                        return BeautifulSoup(response.content, 'html.parser')
-                    elif response.status_code == 429:
-                        delay *= 2  # Exponential backoff
-                        await asyncio.sleep(delay)
-                    else:
-                        raise HTTPException(
-                            status_code=response.status_code,
-                            detail=f"LinkedIn API error: {response.text}"
-                        )
-                        
-                except (httpx.RequestError, asyncio.TimeoutError) as e:
-                    if attempt == retries - 1:
-                        raise HTTPException(
-                            status_code=503,
-                            detail=f"Failed to fetch LinkedIn data: {str(e)}"
-                        )
-                    await asyncio.sleep(delay)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Service temporarily unavailable"
+                )
         return None
+
+    async def _get_description_batch(self, urls: List[str]) -> Dict[str, str]:
+        """Get multiple job descriptions in parallel."""
+        tasks = []
+        async with httpx.AsyncClient(headers=self.headers, timeout=15.0) as client:
+            for url in urls:
+                tasks.append(client.get(url))
+            responses = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        descriptions = {}
+        for url, response in zip(urls, responses):
+            try:
+                if isinstance(response, Exception):
+                    descriptions[url] = "Description temporarily unavailable"
+                    continue
+                    
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    descriptions[url] = self._transform_job_description(soup)
+                else:
+                    descriptions[url] = "Description not available"
+            except Exception:
+                descriptions[url] = "Error loading description"
+                
+        return descriptions
 
     def _clean_text(self, text: str) -> str:
         """Clean text by removing HTML tags and normalizing whitespace."""
@@ -158,8 +178,8 @@ class LinkedInService:
         keywords: str,
         location: str,
         job_type: Optional[str] = None,
-        max_results: int = 10,  # Default to 10 for first page
-        start: int = 0  # Added start parameter for pagination
+        max_results: int = 10,
+        start: int = 0
     ) -> List[JobDescription]:
         """Search for jobs with pagination and caching support."""
         cache_key = f"{keywords}:{location}:{job_type}:{start}:{max_results}"
@@ -168,10 +188,7 @@ class LinkedInService:
             return cached_result
 
         try:
-            keywords = quote(keywords)
-            location = quote(location)
-            
-            url = f"{self.base_url}?keywords={keywords}&location={location}&start={start}"
+            url = f"{self.base_url}?keywords={quote(keywords)}&location={quote(location)}&start={start}"
             if job_type and job_type.lower() == 'remote':
                 url += "&f_WT=2"
             
@@ -184,39 +201,31 @@ class LinkedInService:
                 return []
 
             jobs = []
-            for item in divs:
+            for item in divs[:max_results]:
                 try:
+                    # Extract basic job info
                     title_elem = item.find('h3')
                     company_elem = item.find('a', class_='hidden-nested-link')
                     location_elem = item.find('span', class_='job-search-card__location')
-                    parent_div = item.parent
-                    entity_urn = parent_div.get('data-entity-urn', '')
-                    
-                    if not all([title_elem, company_elem, entity_urn]):
+                    job_id = item.parent.get('data-entity-urn', '').split(':')[-1]
+
+                    if not all([title_elem, company_elem, job_id]):
                         continue
-                    
-                    job_id = entity_urn.split(':')[-1] if entity_urn else str(int(time.time()))
+
                     job_url = f'https://www.linkedin.com/jobs/view/{job_id}/'
-                    
-                    # Create job without description first
-                    job = JobDescription(
+                    jobs.append(JobDescription(
                         job_id=job_id,
                         title=self._clean_text(title_elem),
                         company=self._clean_text(company_elem),
                         location=self._clean_text(location_elem) if location_elem else "",
-                        description="Loading...",  # Placeholder
+                        description="Loading...",
                         url=job_url
-                    )
-                    jobs.append(job)
-                    
-                    if len(jobs) >= max_results:
-                        break
-                        
+                    ))
                 except Exception:
                     continue
 
-            # Cache the initial results with placeholder descriptions
-            self._set_cache(cache_key, jobs)
+            if jobs:
+                self._set_cache(cache_key, jobs)
             return jobs
             
         except Exception as e:
