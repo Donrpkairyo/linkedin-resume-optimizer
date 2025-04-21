@@ -26,7 +26,6 @@ export default function JobSearchPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [currentPage, setCurrentPage] = useState(0);
   const { ref, entry } = useIntersection({
     root: null,
     threshold: 1,
