@@ -22,11 +22,6 @@ import { jobsApi } from '../lib/api/client';
 import { JobDescription, JobSearchRequest } from '../lib/api/types';
 import '@mantine/core/styles.css';
 
-// Update getJobDetails type in JobCard
-async function getJobDetails(url: string): Promise<JobDescription> {
-  return jobsApi.getByUrl(url);
-}
-
 export default function JobSearchPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
