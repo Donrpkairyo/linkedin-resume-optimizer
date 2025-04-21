@@ -17,7 +17,7 @@ import { IconBriefcase, IconMapPin, IconSearch } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIntersection } from '@mantine/hooks';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { jobsApi } from '../lib/api/client';
 import { JobDescription, JobSearchRequest } from '../lib/api/types';
 import '@mantine/core/styles.css';
@@ -26,6 +26,7 @@ export default function JobSearchPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(0);
   const { ref, entry } = useIntersection({
     root: null,
     threshold: 1,
@@ -53,11 +54,12 @@ export default function JobSearchPage() {
     refetch
   } = useInfiniteQuery({
     queryKey: ['jobs', form.values],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam = 0 }) => {
       try {
         const response = await jobsApi.search({
           ...form.values,
-          offset: (pageParam - 1) * form.values.limit
+          offset: pageParam,
+          limit: 10 // Fixed page size
         });
         return response;
       } catch (error) {
@@ -72,10 +74,11 @@ export default function JobSearchPage() {
       }
     },
     getNextPageParam: (lastPage, allPages) => {
-      return lastPage.length === form.values.limit ? allPages.length + 1 : undefined;
+      // Only return next page if we got a full page of results
+      return lastPage.length === 10 ? allPages.length * 10 : undefined;
     },
     enabled: false,
-    initialPageParam: 1,
+    initialPageParam: 0,
   });
 
   const handleSubmit = form.onSubmit((values) => {

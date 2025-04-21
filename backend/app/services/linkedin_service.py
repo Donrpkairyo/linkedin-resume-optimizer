@@ -158,78 +158,66 @@ class LinkedInService:
         keywords: str,
         location: str,
         job_type: Optional[str] = None,
-        max_results: int = 25
+        max_results: int = 10,  # Default to 10 for first page
+        start: int = 0  # Added start parameter for pagination
     ) -> List[JobDescription]:
         """Search for jobs with pagination and caching support."""
-        cache_key = f"{keywords}:{location}:{job_type}:{max_results}"
+        cache_key = f"{keywords}:{location}:{job_type}:{start}:{max_results}"
         cached_result = self._get_cache(cache_key)
         if cached_result:
             return cached_result
 
-        all_jobs = []
-        start = 0
-        max_pages = (max_results + 24) // 25  # Calculate pages needed
-        
         try:
             keywords = quote(keywords)
             location = quote(location)
             
-            for page in range(max_pages):
-                url = f"{self.base_url}?keywords={keywords}&location={location}&start={start}"
-                
-                if job_type and job_type.lower() == 'remote':
-                    url += "&f_WT=2"
-                
-                soup = await self._get_with_retry(url)
-                if not soup:
-                    break
-                
-                divs = soup.find_all('div', class_='base-search-card__info')
-                if not divs:
-                    break
-                
-                for item in divs:
-                    try:
-                        title_elem = item.find('h3')
-                        company_elem = item.find('a', class_='hidden-nested-link')
-                        location_elem = item.find('span', class_='job-search-card__location')
-                        parent_div = item.parent
-                        entity_urn = parent_div.get('data-entity-urn', '')
-                        
-                        if not all([title_elem, company_elem, entity_urn]):
-                            continue
-                        
-                        job_id = entity_urn.split(':')[-1] if entity_urn else str(int(time.time()))
-                        job_url = f'https://www.linkedin.com/jobs/view/{job_id}/'
-                        
-                        description_soup = await self._get_with_retry(job_url)
-                        description = self._transform_job_description(description_soup) if description_soup else "Description not available"
-                        
-                        job = JobDescription(
-                            job_id=job_id,
-                            title=self._clean_text(title_elem),
-                            company=self._clean_text(company_elem),
-                            location=self._clean_text(location_elem) if location_elem else "",
-                            description=description,
-                            url=job_url
-                        )
-                        all_jobs.append(job)
-                        
-                        if len(all_jobs) >= max_results:
-                            break
-                            
-                    except Exception:
-                        continue
-                
-                if len(all_jobs) >= max_results:
-                    break
-                
-                await asyncio.sleep(2)
-                start += 25
+            url = f"{self.base_url}?keywords={keywords}&location={location}&start={start}"
+            if job_type and job_type.lower() == 'remote':
+                url += "&f_WT=2"
             
-            result = all_jobs[:max_results]
-            self._set_cache(cache_key, result)
-            return result
+            soup = await self._get_with_retry(url)
+            if not soup:
+                return []
+            
+            divs = soup.find_all('div', class_='base-search-card__info')
+            if not divs:
+                return []
+
+            jobs = []
+            for item in divs:
+                try:
+                    title_elem = item.find('h3')
+                    company_elem = item.find('a', class_='hidden-nested-link')
+                    location_elem = item.find('span', class_='job-search-card__location')
+                    parent_div = item.parent
+                    entity_urn = parent_div.get('data-entity-urn', '')
+                    
+                    if not all([title_elem, company_elem, entity_urn]):
+                        continue
+                    
+                    job_id = entity_urn.split(':')[-1] if entity_urn else str(int(time.time()))
+                    job_url = f'https://www.linkedin.com/jobs/view/{job_id}/'
+                    
+                    # Create job without description first
+                    job = JobDescription(
+                        job_id=job_id,
+                        title=self._clean_text(title_elem),
+                        company=self._clean_text(company_elem),
+                        location=self._clean_text(location_elem) if location_elem else "",
+                        description="Loading...",  # Placeholder
+                        url=job_url
+                    )
+                    jobs.append(job)
+                    
+                    if len(jobs) >= max_results:
+                        break
+                        
+                except Exception:
+                    continue
+
+            # Cache the initial results with placeholder descriptions
+            self._set_cache(cache_key, jobs)
+            return jobs
             
         except Exception as e:
             raise HTTPException(

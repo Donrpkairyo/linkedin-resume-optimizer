@@ -38,6 +38,43 @@ This application helps users optimize their resumes for job applications by comb
 - Integration with AI services (DeepSeek, Gemini)
 - Support for multiple file formats
 
+## Recent Optimizations and Insights
+
+### Performance Improvements
+1. **LinkedIn Job Search**
+   - Increased rate limit to 30 calls per minute for faster job loading
+   - Implemented aggressive caching strategy (5-minute TTL)
+   - Optimized search results pagination
+   - Added loading states and error handling
+
+2. **Frontend Optimizations**
+   - Removed unused references (e.g., lastJobRef)
+   - Implemented infinite scrolling for job results
+   - Added loading indicators for better UX
+   - Improved error handling and user feedback
+
+### Known Issues and Solutions
+1. **Rate Limiting**
+   - Default rate limit: 30 calls/minute
+   - Increase this in linkedin_service.py if needed
+   - Monitor rate limit errors in production
+
+2. **Deployment Considerations**
+   - Vercel builds may fail if TypeScript has unused variables
+   - Always run `npm run build` locally before deploying
+   - Check for CORS issues when deploying to production
+
+3. **Common Debugging Tips**
+   - Check rate limiting in backend logs
+   - Monitor network tab for API response times
+   - Use browser console for frontend errors
+   - Verify environment variables in both services
+
+4. **Performance Monitoring**
+   - Watch for rate limit errors in production logs
+   - Monitor API response times for job searches
+   - Check memory usage with large result sets
+
 # Local Setup Instructions
 
 ## Prerequisites

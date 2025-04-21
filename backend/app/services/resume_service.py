@@ -27,42 +27,55 @@ class ResumeService:
         """
         try:
             prompt = f"""
-            Analyze this resume against the job description and create optimized bullet points. Give suggestions that stratigically align closer to the position and really tailor each to best match the job. Follow these rules exactly:
+            You are an expert resume optimization assistant. First analyze the job description to identify:
+            1. Key requirements and skills needed
+            2. Specific technologies or tools mentioned
+            3. Desired experience level and background
+            4. Company culture and values indicated
+            5. Industry-specific terminology used
+
+            Then, analyze the resume against these requirements to create optimized content that strategically aligns with the position. Follow these rules:
 
             1. Output Format:
+               ANALYSIS:
+               - Job Requirements: [List key requirements identified]
+               - Skills Gap: [Identify any gaps between resume and requirements]
+               - Optimization Focus: [Areas to emphasize]
+
                POSITION_UPDATES:
                [Existing Position Title]
                [Company | Date exactly as in resume]
-               - [New bullet point]
+               - [New bullet point with clear alignment to job requirements]
 
             2. Bullet Point Rules:
                - Match original length (±10 words)
-               - Start with strong action verbs
-               - Include metrics when present
-               - Focus on achievements relevant to job requirements
-               - Keep original tone and professionalism
-               - Avoid generic statements and make it really specific
-               - Limit to 3-4 bullets per position
-               - Total length similar to original
+               - Start with relevant action verbs from the job description
+               - Include metrics and quantifiable achievements
+               - Directly address job requirements
+               - Use keywords and terminology from the job posting
+               - Make achievements specific to the target role
+               - Limit to 3-4 most relevant bullets per position
+               - Maintain professional tone
 
             3. Position Rules:
-               - Only update existing positions
-               - Don't update every single bullet point
+               - Focus on positions most relevant to job requirements
+               - Highlight transferable skills for different industries
                - Keep exact company names and dates
-               - Focus on most recent/relevant positions
+               - Emphasize recent experience aligned with role
                - Maintain chronological order
 
             4. Language Rules:
-               - Use concise, impactful language
-               - Incorporate job-specific keywords naturally
-               - Keep industry-standard terms
-               - Preserve technical terminology
-
-            Resume:
-            {resume_text}
+               - Mirror the job description's terminology
+               - Use industry-standard keywords
+               - Incorporate role-specific language
+               - Maintain technical accuracy
+               - Ensure natural, professional tone
 
             Job Description:
             {job_description}
+
+            Resume:
+            {resume_text}
             """
 
             # Run synchronously since Gemini's Python SDK doesn't support async
