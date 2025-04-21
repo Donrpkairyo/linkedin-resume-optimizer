@@ -17,7 +17,7 @@ import { IconBriefcase, IconMapPin, IconSearch } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useIntersection } from '@mantine/hooks';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { jobsApi } from '../lib/api/client';
 import { JobDescription, JobSearchRequest } from '../lib/api/types';
 import '@mantine/core/styles.css';
@@ -26,7 +26,6 @@ export default function JobSearchPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const lastJobRef = useRef<HTMLDivElement>(null);
   const { ref, entry } = useIntersection({
     root: null,
     threshold: 1,

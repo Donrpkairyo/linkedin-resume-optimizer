@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, Stack, Text, Paper } from '@mantine/core';
+import { Stack, Text, Paper } from '@mantine/core';
 import { SkeletonText } from './SkeletonText';
 
 interface LoadingStepsProps {

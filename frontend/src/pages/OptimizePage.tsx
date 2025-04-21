@@ -14,7 +14,7 @@ import {
 import { useForm } from '@mantine/form';
 import { IconFileUpload, IconWand, IconDownload, IconArrowLeft } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resumeApi } from '../lib/api/client';
 import { ResumeOptimizationRequest } from '../lib/api/types';
@@ -36,12 +36,10 @@ interface TextareaChangeEvent {
 export default function OptimizePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const jobUrl = searchParams.get('url');
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [editedSuggestions, setEditedSuggestions] = useState<string>('');
   const [optimizedResume, setOptimizedResume] = useState<string>('');
-  const [showResults, setShowResults] = useState(false);
 
   const form = useForm<OptimizeFormValues>({
     initialValues: {
@@ -112,10 +110,6 @@ export default function OptimizePage() {
     },
   });
 
-  const handleLoadingComplete = () => {
-    setShowResults(true);
-  };
-
   const handleFileUpload = (file: File | null) => {
     if (!file) return;
     setCurrentFile(file);
@@ -134,7 +128,6 @@ export default function OptimizePage() {
   };
 
   const handleSubmit = form.onSubmit((values: OptimizeFormValues) => {
-    setShowResults(false);
     setOptimizedResume(''); // Clear previous results
 
     if (currentFile && (currentFile.name.endsWith('.docx') || currentFile.name.endsWith('.doc'))) {
@@ -255,9 +248,7 @@ export default function OptimizePage() {
       </Paper>
 
       {isLoading && !optimizedResume ? (
-        <LoadingSteps 
-          onLoadingComplete={handleLoadingComplete}
-        />
+        <LoadingSteps />
       ) : error ? (
         <Text c="red" ta="center">
           {error instanceof Error ? error.message : 'Failed to optimize resume'}
