@@ -11,6 +11,7 @@ import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { useEffect, useState } from 'react';
 import { Text, Center, AppShell } from '@mantine/core';
+import axios from 'axios';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,12 +29,27 @@ const queryClient = new QueryClient({
 export default function App() {
   const [loading, setLoading] = useState(true);
 
+  const pingServer = async () => {
+    try {
+      await axios.get('/api/ping');
+      console.log('Server pinged successfully');
+    } catch (error) {
+      console.error('Error pinging server:', error);
+    }
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
     }, 3000);
 
-    return () => clearTimeout(timer);
+    pingServer(); // Ping immediately on component mount
+    const intervalId = setInterval(pingServer, 5 * 60 * 1000); // Ping every 5 minutes
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(intervalId);
+    };
   }, []);
 
   return (

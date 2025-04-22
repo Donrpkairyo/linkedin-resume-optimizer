@@ -72,6 +72,10 @@ async def health_check():
     )
 
 # Root endpoint
+@app.get("/ping")
+async def ping():
+    return {"status": "ok", "timestamp": int(time.time())}
+
 @app.get("/")
 async def root():
     return {"message": "LinkedIn Resume Optimizer API is running"}
