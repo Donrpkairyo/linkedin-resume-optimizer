@@ -10,7 +10,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import { useEffect, useState } from 'react';
-import { Loader, Text, Center, AppShell } from '@mantine/core';
+import { Text, Center, AppShell } from '@mantine/core';
 
 const queryClient = new QueryClient({
   defaultOptions: {
