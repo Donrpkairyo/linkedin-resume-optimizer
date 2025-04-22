@@ -9,6 +9,8 @@ import OptimizePage from './pages/OptimizePage';
 import NotFoundPage from './pages/NotFoundPage';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import { useEffect, useState } from 'react';
+import { Loader, Text, Center, AppShell } from '@mantine/core';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,22 +26,42 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <MantineProvider>
       <Notifications />
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<RootLayout />}>
-              <Route index element={<JobSearchPage />} />
-              <Route path="optimize" element={<OptimizePage />} />
-              <Route path="404" element={<NotFoundPage />} />
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Route>
-          </Routes>
-        </Router>
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+      {loading ? (
+        <AppShell>
+          <Center mih="100vh">
+            <Text size="xl" fw={500}>
+              Application loading, please wait... (first search may take up to 50 seconds)
+            </Text>
+          </Center>
+        </AppShell>
+      ) : (
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <Routes>
+              <Route path="/" element={<RootLayout />}>
+                <Route index element={<JobSearchPage />} />
+                <Route path="optimize" element={<OptimizePage />} />
+                <Route path="404" element={<NotFoundPage />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Route>
+            </Routes>
+          </Router>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      )}
     </MantineProvider>
   );
 }

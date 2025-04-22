@@ -56,7 +56,7 @@ class LinkedInService:
 
     async def _get_with_retry(self, url: str, retries: int = 3) -> Optional[BeautifulSoup]:
         """Get URL content with smart retries."""
-        async with httpx.AsyncClient(headers=self.headers, timeout=20.0) as client:
+        async with httpx.AsyncClient(headers=self.headers, timeout=10.0) as client:
             for attempt in range(retries):
                 try:
                     # Add delay between retries, increasing with each attempt
