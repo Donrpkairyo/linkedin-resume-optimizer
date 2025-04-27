@@ -1,4 +1,5 @@
-import { AppShell, Container, Group, Title, Button } from '@mantine/core';
+import { AppShell, Container, Group, Button, Image } from '@mantine/core';
+import logo from '../assets/Resume optimiser Logo.svg';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { IconBriefcase, IconFileText } from '@tabler/icons-react';
 import '@mantine/core/styles.css';
@@ -8,15 +9,13 @@ export default function RootLayout() {
 
   return (
     <AppShell
-      header={{ height: 60 }}
+      header={{ height: 100 }}
       padding="md"
     >
       <AppShell.Header>
         <Container size="lg" h="100%">
-          <Group justify="space-between" h="100%">
-            <Title order={1} size="h3">
-              LinkedIn Resume Optimizer
-            </Title>
+          <Group justify="space-between" h="100%" align="center">
+            <Image src={logo} h={85} w="auto" fit="contain" alt="Resume Optimizer Logo" />
             <Group>
               <Button
                 component={Link}

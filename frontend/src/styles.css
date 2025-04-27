@@ -1,0 +1,11 @@
+.job-card-container {
+    border-radius: var(--mantine-radius-md);
+}
+
+.job-card-container:hover {
+    background-color: var(--mantine-color-gray-0);
+}
+
+[data-mantine-color-scheme="dark"] .job-card-container:hover {
+    background-color: var(--mantine-color-dark-6);
+}

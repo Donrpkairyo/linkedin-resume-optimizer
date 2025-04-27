@@ -7,6 +7,10 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  optimizeDeps: {
+    include: ['prop-types'],
+    exclude: ['@mantine/core', '@mantine/hooks', '@mantine/notifications'],
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,

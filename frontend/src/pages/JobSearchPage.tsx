@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { 
   TextInput, 
   Button, 
@@ -5,281 +6,291 @@ import {
   Paper, 
   Title, 
   Group, 
-  Card, 
   Text, 
   Badge,
-  Loader,
-  Box
+  Alert,
+  Box,
+  Container,
+  Select
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { IconBriefcase, IconMapPin, IconSearch } from '@tabler/icons-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  IconBriefcase,
+  IconMapPin,
+  IconSearch,
+  IconInfoCircle,
+  IconX
+} from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useIntersection } from '@mantine/hooks';
-import { useEffect, useState } from 'react';
+import { 
+  JobDescription, 
+  JobSearchRequest,
+  DATE_POSTED_OPTIONS,
+  JOB_TYPE_OPTIONS,
+  EXPERIENCE_LEVEL_OPTIONS,
+  REMOTE_FILTER_OPTIONS
+} from '../lib/api/types';
 import { jobsApi } from '../lib/api/client';
-import { JobDescription, JobSearchRequest } from '../lib/api/types';
-import '@mantine/core/styles.css';
+import { JobCard } from '../components/JobCard';
 
 export default function JobSearchPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { ref, entry } = useIntersection({
-    root: null,
-    threshold: 1,
-  });
+  
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [jobs, setJobs] = useState<JobDescription[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<JobSearchRequest>({
     initialValues: {
       keywords: searchParams.get('keywords') || '',
       location: searchParams.get('location') || '',
-      job_type: '',
-      limit: 10,
+      date_posted: searchParams.get('date_posted') || '',
+      job_type: searchParams.get('job_type') || '',
+      remote_filter: searchParams.get('remote_filter') || '',
+      experience_level: searchParams.get('experience_level') || '',
+      sort_by: 'recent',
+      page: currentPage
     },
     validate: {
-      keywords: (value) => (!value ? 'Keywords are required' : null),
+      keywords: (value) => value.trim().length === 0 ? 'Keywords are required' : null,
     },
   });
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    error,
-    refetch
-  } = useInfiniteQuery({
-    queryKey: ['jobs', form.values],
-    queryFn: async ({ pageParam = 0 }) => {
+  const { isLoading, isFetching } = useQuery({
+    queryKey: ['jobs', { ...form.values, page: currentPage }],
+    queryFn: async () => {
       try {
         const response = await jobsApi.search({
           ...form.values,
-          offset: pageParam,
-          limit: 10 // Fixed page size
+          page: currentPage
         });
-        return response;
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('ERR_CONNECTION_REFUSED')) {
-          notifications.show({
-            title: 'Connection Error',
-            message: 'Unable to connect to the server. Please make sure the backend is running.',
-            color: 'red',
-          });
+        
+        if (currentPage === 0) {
+          setJobs(response.jobs);
+        } else {
+          setJobs(prev => [...prev, ...response.jobs]);
         }
-        throw error;
+        
+        setHasMore(response.has_more);
+        setError(null);
+        return response;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to search jobs';
+        setError(message);
+        notifications.show({
+          title: 'Search Error',
+          message,
+          color: 'red'
+        });
+        throw err;
       }
     },
-    getNextPageParam: (lastPage, allPages) => {
-      // Only return next page if we got a full page of results
-      return lastPage.length === 10 ? allPages.length * 10 : undefined;
-    },
-    enabled: false,
-    initialPageParam: 0,
+    enabled: searchParams.has('keywords'),
+    staleTime: 30000,
+    gcTime: 3600000,
+    retry: 1
   });
 
-  const handleSubmit = form.onSubmit((values) => {
-    // Update URL with search parameters
-    const params = new URLSearchParams();
-    if (values.keywords) params.set('keywords', values.keywords);
-    if (values.location) params.set('location', values.location);
-    navigate(`?${params.toString()}`);
-    
-    // Trigger the search
-    refetch();
-  });
+  const handleSearch = async (values: JobSearchRequest) => {
+    try {
+      setCurrentPage(0);
+      setJobs([]);
+      setError(null);
+      
+      // Update URL with search params
+      const params = new URLSearchParams();
+      Object.entries(values)
+        .filter(([_, value]) => value !== null && value !== '')
+        .forEach(([key, value]) => params.set(key, value.toString()));
+      navigate(`?${params.toString()}`);
+      
+      // Show loading notification
+      notifications.show({
+        id: 'search-jobs',
+        title: 'Searching LinkedIn',
+        message: 'Finding matching positions...',
+        color: 'blue',
+        loading: true,
+        autoClose: false
+      });
 
-  useEffect(() => {
-    if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      
+      notifications.update({
+        id: 'search-jobs',
+        title: 'Search Complete',
+        message: 'Scroll down to see results',
+        color: 'green',
+        loading: false,
+        autoClose: 2000
+      });
+    } catch (err) {
+      console.error('Search error:', err);
+      notifications.update({
+        id: 'search-jobs',
+        title: 'Search Error',
+        message: err instanceof Error ? err.message : 'Failed to search jobs',
+        color: 'red',
+        loading: false,
+        autoClose: 5000
+      });
     }
-  }, [entry?.isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-  const handleOptimizeResume = (job: JobDescription) => {
-    queryClient.setQueryData(['currentJob'], job);
-    navigate(`/optimize?url=${encodeURIComponent(job.url || '')}`);
   };
 
-  const allJobs = data?.pages.flatMap(page => page) || [];
-  const totalJobs = allJobs.length;
+  const loadMore = useCallback(async () => {
+    try {
+      setIsLoadingMore(true);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Add delay
+      setCurrentPage(prev => prev + 1);
+    } catch (err) {
+      setError('Error loading more jobs. Please try again.');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, []);
+
+  const handleSubmit = form.onSubmit((values) => handleSearch(values));
 
   return (
-    <Stack gap="xl">
-      <Paper p="md" withBorder>
-        <form onSubmit={handleSubmit}>
-          <Stack gap="md">
-            <Title order={2}>Search LinkedIn Jobs</Title>
-            <Group grow>
-              <TextInput
-                label="Keywords"
-                placeholder="e.g., Software Engineer"
-                leftSection={<IconSearch size={20} />}
-                {...form.getInputProps('keywords')}
-              />
-              <TextInput
-                label="Location"
-                placeholder="e.g., Sydney"
-                leftSection={<IconMapPin size={20} />}
-                {...form.getInputProps('location')}
-              />
+    <Container size="lg" py="xl">
+      <Stack gap="xl">
+        <Paper p="md" withBorder>
+          <form onSubmit={handleSubmit}>
+            <Stack gap="lg">
+              <Title order={2}>Search LinkedIn Jobs</Title>
+              
+              <Alert icon={<IconInfoCircle />} color="blue">
+                Results are loaded in batches of 10. Use the "Load More" button to see additional positions.
+              </Alert>
+
+              <Group grow>
+                <TextInput
+                  label="Keywords"
+                  placeholder="e.g., Software Engineer"
+                  leftSection={<IconSearch size={20} />}
+                  {...form.getInputProps('keywords')}
+                />
+                <TextInput
+                  label="Location"
+                  placeholder="e.g., Sydney"
+                  leftSection={<IconMapPin size={20} />}
+                  {...form.getInputProps('location')}
+                />
+              </Group>
+
+              <Group grow>
+                <Select
+                  label="Date Posted"
+                  placeholder="Select date range"
+                  data={DATE_POSTED_OPTIONS}
+                  clearable
+                  {...form.getInputProps('date_posted')}
+                />
+                <Select
+                  label="Job Type"
+                  placeholder="Select job type"
+                  data={JOB_TYPE_OPTIONS}
+                  clearable
+                  {...form.getInputProps('job_type')}
+                />
+                <Select
+                  label="Experience Level"
+                  placeholder="Select experience"
+                  data={EXPERIENCE_LEVEL_OPTIONS}
+                  clearable
+                  {...form.getInputProps('experience_level')}
+                />
+              </Group>
+
+              <Group gap="sm">
+                <Select
+                  label="Work Type"
+                  placeholder="Select work type"
+                  data={REMOTE_FILTER_OPTIONS}
+                  clearable
+                  {...form.getInputProps('remote_filter')}
+                />
+              </Group>
+
+              <Group justify="flex-end">
+                <Button 
+                  type="submit"
+                  leftSection={<IconSearch size={20} />}
+                  loading={isLoading || isFetching}
+                  disabled={isLoadingMore}
+                >
+                  Search Jobs
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Paper>
+
+        {error ? (
+          <Paper withBorder p="xl" ta="center">
+            <Stack gap="md" align="center">
+              <IconX size={48} color="var(--mantine-color-red-6)" />
+              <Title order={3} c="red">Search Error</Title>
+              <Text c="red">{error}</Text>
+            </Stack>
+          </Paper>
+        ) : isLoading ? (
+          <Paper withBorder p="xl">
+            <Stack gap="md">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <JobCard key={i} loading />
+              ))}
+            </Stack>
+          </Paper>
+        ) : jobs.length > 0 ? (
+          <Stack gap="lg">
+            <Group justify="space-between" align="center">
+              <Title order={2}>Search Results</Title>
+              <Badge variant="light" color="blue" size="lg">
+                Found {jobs.length} positions
+              </Badge>
             </Group>
-            <Group justify="flex-end">
-              <Button 
-                type="submit" 
-                loading={isLoading}
-                leftSection={<IconBriefcase size={20} />}
-              >
-                Search Jobs
-              </Button>
-            </Group>
+
+            <Stack gap="md">
+              {jobs.map((job) => (
+                <Box key={job.job_id}>
+                  <JobCard 
+                    job={job}
+                    onOptimize={() => navigate(`/optimize?url=${encodeURIComponent(job.url)}`)}
+                  />
+                </Box>
+              ))}
+
+              {hasMore && (
+                <Group justify="center" mt="xl">
+                  <Button
+                    variant="light"
+                    onClick={loadMore}
+                    loading={isLoadingMore}
+                    disabled={isLoading || isFetching}
+                  >
+                    {isLoadingMore ? 'Loading More...' : 'Load More Jobs'}
+                  </Button>
+                </Group>
+              )}
+            </Stack>
           </Stack>
-        </form>
-      </Paper>
-
-      {isLoading ? (
-        <Box ta="center" py="xl">
-          <Loader size="lg" />
-        </Box>
-      ) : error ? (
-        <Text c="red" ta="center">
-          {error instanceof Error ? error.message : 'An error occurred while fetching jobs'}
-        </Text>
-      ) : data ? (
-        <Stack gap="md">
-          <Group justify="space-between" align="center">
-            <Title order={2}>Search Results</Title>
-            <Text size="sm" c="dimmed">Found {totalJobs} positions</Text>
-          </Group>
-          {allJobs.map((job: JobDescription, index: number) => (
-            <div
-              key={job.job_id || index}
-              ref={index === allJobs.length - 1 ? ref : undefined}
-            >
-              <JobCard 
-                job={job} 
-                onOptimize={() => handleOptimizeResume(job)} 
-              />
-            </div>
-          ))}
-          {isFetchingNextPage && (
-            <Box ta="center" py="md">
-              <Loader size="sm" />
-            </Box>
-          )}
-        </Stack>
-      ) : null}
-    </Stack>
-  );
-}
-
-function JobCard({ job, onOptimize }: { job: JobDescription; onOptimize: () => void }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [description, setDescription] = useState(job.description);
-  const [loadAttempts, setLoadAttempts] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  useEffect(() => {
-    const loadDescription = async () => {
-      if (job.url && description === "Loading..." && !isRetrying) {
-        try {
-          const jobId = job.url.split('/').filter(Boolean).pop()?.split('?')[0];
-          const canonicalUrl = `https://www.linkedin.com/jobs/view/${jobId}/`;
-          
-          const response = await jobsApi.getByUrl(canonicalUrl);
-          if (response && response.description) {
-            setDescription(response.description);
-          } else if (loadAttempts < 2) {
-            // Retry with exponential backoff
-            setIsRetrying(true);
-            setTimeout(() => {
-              setLoadAttempts(prev => prev + 1);
-              setIsRetrying(false);
-              setDescription("Loading..."); // Trigger retry
-            }, 2000 * (loadAttempts + 1));
-          } else {
-            setDescription('Description temporarily unavailable');
-            notifications.show({
-              title: 'Rate Limit',
-              message: 'Some job details are temporarily unavailable. Please try again in a few minutes.',
-              color: 'yellow',
-            });
-          }
-        } catch (error) {
-          console.error('Error loading job description:', error);
-          if (loadAttempts < 2) {
-            // Retry on error
-            setIsRetrying(true);
-            setTimeout(() => {
-              setLoadAttempts(prev => prev + 1);
-              setIsRetrying(false);
-              setDescription("Loading..."); // Trigger retry
-            }, 2000 * (loadAttempts + 1));
-          } else {
-            setDescription('Error loading description');
-          }
-        }
-      }
-    };
-    loadDescription();
-  }, [job.url, description, loadAttempts, isRetrying]);
-
-  return (
-    <Card withBorder>
-      <Stack gap="md">
-        <Group justify="space-between" wrap="nowrap">
-          <Box>
-            <Title order={3} size="h4">
-              {job.title}
-            </Title>
-            <Text size="sm" c="dimmed">
-              {job.company}
-            </Text>
-          </Box>
-          <Button
-            onClick={onOptimize}
-            variant="light"
-          >
-            Optimize Resume
-          </Button>
-        </Group>
-        <Group>
-          <Badge leftSection={<IconMapPin size={14} />}>
-            {job.location}
-          </Badge>
-        </Group>
-        <Box>
-          {description ? (
-            <>
-              <Text lineClamp={isExpanded ? undefined : 3}>
-                {description}
-              </Text>
-              <Button
-                variant="subtle"
-                onClick={() => setIsExpanded(!isExpanded)}
-                size="xs"
-                mt="xs"
-              >
-                {isExpanded ? 'Show Less' : 'Read More'}
-              </Button>
-            </>
-          ) : (
-            <Loader size="sm" />
-          )}
-        </Box>
-        {job.url && (
-          <Button
-            component="a"
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            variant="outline"
-          >
-            View on LinkedIn
-          </Button>
-        )}
+        ) : searchParams.has('keywords') ? (
+          <Paper withBorder p="xl" ta="center">
+            <Stack gap="md" align="center">
+              <IconBriefcase size={48} color="var(--mantine-color-gray-5)" />
+              <Title order={3}>No jobs found</Title>
+              <Text c="dimmed">Try adjusting your search terms or filters</Text>
+            </Stack>
+          </Paper>
+        ) : null}
       </Stack>
-    </Card>
+    </Container>
   );
 }

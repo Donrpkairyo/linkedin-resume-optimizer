@@ -9,8 +9,9 @@ import OptimizePage from './pages/OptimizePage';
 import NotFoundPage from './pages/NotFoundPage';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
+import './styles.css';
 import { useEffect, useState } from 'react';
-import { Text, Center, AppShell } from '@mantine/core';
+import { Center, AppShell, Loader } from '@mantine/core';
 import axios from 'axios';
 
 const queryClient = new QueryClient({
@@ -31,7 +32,8 @@ export default function App() {
 
   const pingServer = async () => {
     try {
-      await axios.get('/api/ping');
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      await axios.get(`${baseUrl}/api/ping`);
       console.log('Server pinged successfully');
     } catch (error) {
       console.error('Error pinging server:', error);
@@ -58,9 +60,7 @@ export default function App() {
       {loading ? (
         <AppShell>
           <Center mih="100vh">
-            <Text size="xl" fw={500}>
-              Application loading, please wait... (first search may take up to 50 seconds)
-            </Text>
+            <Loader size="lg" type="dots" />
           </Center>
         </AppShell>
       ) : (

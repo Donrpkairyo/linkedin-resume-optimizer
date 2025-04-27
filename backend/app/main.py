@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
+import time
 
 # Import routers
 from app.api import jobs, optimize
@@ -19,28 +19,15 @@ app = FastAPI(
 )
 
 # Configure CORS
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-environment = os.getenv("ENVIRONMENT", "development")
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+]
 
-# Define allowed origins based on environment
-if environment == "production":
-    # In production, only allow the specified frontend URL and its HTTPS variant
-    https_frontend_url = frontend_url.replace("http://", "https://")
-    origins = [frontend_url, https_frontend_url]
-else:
-    # In development, allow localhost variants
-    origins = [
-        frontend_url,
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-    ]
-
-# Remove any None or empty values from origins
-origins = [origin for origin in origins if origin]
-
-# Log the allowed origins
 print(f"Allowed CORS origins: {origins}")
 
 app.add_middleware(
@@ -55,6 +42,11 @@ app.add_middleware(
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(optimize.router, prefix="/api/optimize", tags=["optimize"])
 
+# Ping endpoint
+@app.get("/api/ping")
+async def ping():
+    return {"status": "ok", "timestamp": int(time.time())}
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
@@ -63,7 +55,7 @@ async def health_check():
         content={
             "status": "healthy",
             "version": "1.0.0",
-            "environment": os.getenv("ENVIRONMENT", "production"),
+            "environment": os.getenv("ENVIRONMENT", "development"),
             "services": {
                 "linkedin": "active",
                 "resume_optimizer": "active"
@@ -99,14 +91,4 @@ async def general_exception_handler(request, exc):
             "detail": f"Internal server error: {str(exc)}",
             "status_code": 500
         }
-    )
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True
     )
