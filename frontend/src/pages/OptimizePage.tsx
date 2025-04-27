@@ -11,8 +11,7 @@ import {
   Box,
   FileButton,
   Container,
-  Alert,
-  Skeleton
+  Alert
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconFileUpload, IconWand, IconDownload, IconArrowLeft, IconAlertCircle } from '@tabler/icons-react';

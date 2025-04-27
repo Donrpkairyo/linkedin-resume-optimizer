@@ -9,8 +9,7 @@ const STEPS = [
   'Generating tailored suggestions...'
 ];
 
-const STEP_DURATION = 1500; // 1.5 seconds per normal step
-const FINAL_STEP_DURATION = 2500; // 2.5 seconds for the final step with animation
+const STEP_DURATION = 1500; // 1.5 seconds per step
 
 interface LoadingStepProps {
   text: string;
@@ -38,12 +37,7 @@ function LoadingStep({ text, active, complete }: LoadingStepProps) {
   );
 }
 
-interface LoadingStepsProps {
-  onLoadingComplete?: () => void;
-}
-
-
-export function LoadingSteps({ onLoadingComplete }: LoadingStepsProps) {
+export function LoadingSteps() {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
@@ -76,7 +70,7 @@ export function LoadingSteps({ onLoadingComplete }: LoadingStepsProps) {
           {currentStep === STEPS.length - 1 && (
             <Stack gap="xs" mt="md">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Group key={i} spacing="xs" nowrap>
+                <Group key={i} gap="xs" nowrap>
                   <Skeleton circle height={6} mt={5} width={6} animate={true} />
                   <Skeleton
                     height={14}
