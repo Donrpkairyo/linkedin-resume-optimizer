@@ -70,7 +70,7 @@ export function LoadingSteps() {
           {currentStep === STEPS.length - 1 && (
             <Stack gap="xs" mt="md">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Group key={i} gap="xs" nowrap>
+                <Group key={i} gap="xs" wrap={false}>
                   <Skeleton circle height={6} mt={5} width={6} animate={true} />
                   <Skeleton
                     height={14}
